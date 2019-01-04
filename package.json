@@ -1,0 +1,19 @@
+{
+  "name": "deps-injct",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "modules": false,
+  "dependencies": {
+    "awesome-typescript-loader": "^5.2.1",
+    "ts-loader": "^5.3.2",
+    "typescript": "^3.2.2",
+    "webpack": "^4.28.3"
+  },
+  "scripts": {
+    "start": "webpack"
+  },
+  "devDependencies": {
+    "webpack-cli": "^3.2.0"
+  }
+}
