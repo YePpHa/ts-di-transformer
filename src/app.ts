@@ -1,24 +1,24 @@
 import { InterfaceSymbol, Container } from '../transformer/api';
 
 interface IBird {
-  canFly: boolean;
-}
-
-interface IDog {
-  goodBoy: boolean;
+  canFly(): boolean;
 }
 
 class Crow implements IBird {
-  canFly = true;
+  public canFly() {
+    return true;
+  }
 }
 
 class Penguin implements IBird {
-  canFly = false;
+  public canFly() {
+    return false;
+  }
 }
 
 class App {
   constructor(bird: IBird) {
-    if (bird.canFly) {
+    if (bird.canFly()) {
       console.log("Bird can fly");
     } else {
       console.log("Bird can't fly");
