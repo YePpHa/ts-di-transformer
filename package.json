@@ -10,17 +10,17 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/YePpHa/crunchyroll-lib"
+    "url": "git://github.com/YePpHa/ts-di-transformer"
   },
   "bugs": {
-    "url": "https://github.com/YePpHa/crunchyroll-lib/issues"
+    "url": "https://github.com/YePpHa/ts-di-transformer/issues"
   },
 
   "main": "bundles/ts-di-transformer.umd.js",
   "types": "index.d.ts",
   "module": "index.js",
   "es2015": "es2015/index.js",
-  
+
   "scripts": {
     "build": "npm run build:es5 && npm run build:es6 && npm run build:bundle",
     "build:es5": "tsc",
