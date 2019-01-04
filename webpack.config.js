@@ -1,4 +1,4 @@
-const interfaceTransformer = require('./transformer/interface');
+const interfaceTransformer = require('./dist/transformer').default;
 const path = require('path');
 
 module.exports = {

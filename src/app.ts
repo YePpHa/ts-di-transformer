@@ -1,4 +1,4 @@
-import { InterfaceSymbol, Container } from '../transformer/api';
+import { InterfaceSymbol, Container } from './api';
 
 interface IBird {
   canFly(): boolean;
@@ -37,17 +37,33 @@ class Penguin implements IBird {
 }
 
 class App {
-  constructor(bird: IBird) {
+  constructor(bird: IBird, test: Test) {
     if (bird.canFly()) {
       console.log("Bird can fly");
     } else {
       console.log("Bird can't fly");
     }
+
+    test.say("Amy");
+  }
+}
+
+class Test {
+  say(name: string): void {
+    console.log("Hello " + name);
+  }
+}
+
+class MyTest extends Test {
+  say(name: string): void {
+    console.log("Hello, " + name);
   }
 }
 
 const container = new Container();
 container.bind(InterfaceSymbol<IBird>(), Crow);
 container.bind(InterfaceSymbol<IOperator>(), MyBrokenOperator);
+container.bind(InterfaceSymbol<IOperator>(), MyBrokenOperator);
+container.bind(Test, MyTest);
 
-container.startBootstrap(App);
+container.resolve(App);

@@ -11,9 +11,12 @@
     "webpack": "^4.28.3"
   },
   "scripts": {
-    "start": "webpack"
+    "build": "npm run build:transformer && npm run build:example",
+    "build:transformer": "tsc --outDir dist",
+    "build:example": "webpack"
   },
   "devDependencies": {
+    "@types/node": "^10.12.18",
     "webpack-cli": "^3.2.0"
   }
 }
