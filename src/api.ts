@@ -36,7 +36,7 @@ export class Container {
     });
   }
 
-  public resolve(service: new (...args: any[]) => any, params: any[] = []): void {
+  public resolve<T>(service: new (...args: any[]) => T, params: any[] = []): T {
     const args: any = [];
     for (const val of params) {
       args.push(this.get(val));
