@@ -1,18 +1,31 @@
-const interfaceTransformer = require('./dist/transformer').default;
 const path = require('path');
+const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
 
 module.exports = {
-  mode: "development",
-  devtool: "inline-source-map",
   entry: {
-    app: path.join(__dirname, 'src/app.ts'),
+    'ts-di-transformer.umd': path.join(__dirname, 'src.bundle/index.ts'),
+    'ts-di-transformer.umd.min': path.join(__dirname, 'src.bundle/index.ts'),
   },
   output: {
-    filename: "bundle.js",
-    path: path.join(__dirname, 'dist')
+    path: path.resolve(__dirname, 'dist', 'bundles'),
+    filename: '[name].js',
+    libraryTarget: 'umd',
+    library: 'ts-di-transformer',
+    umdNamedDefine: true
   },
   resolve: {
     extensions: [".ts", ".tsx", ".js"]
+  },
+  devtool: 'source-map',
+  mode: 'development',
+  optimization: {
+    minimize: true,
+    minimizer: [
+      new UglifyJSPlugin({
+        sourceMap: true,
+        include: /\.min\.js$/
+      })
+    ]
   },
   module: {
     rules: [
@@ -22,11 +35,7 @@ module.exports = {
         use: {
           loader: "awesome-typescript-loader",
           options: {
-            getCustomTransformers: program => ({
-              before: [
-                interfaceTransformer(program)
-              ]
-            })
+            useTranspileModule: true
           }
         }
       }

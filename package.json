@@ -1,22 +1,40 @@
 {
-  "name": "deps-injct",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "ts-di-transformer",
+  "version": "0.1.0",
   "license": "MIT",
-  "modules": false,
-  "dependencies": {
-    "awesome-typescript-loader": "^5.2.1",
-    "ts-loader": "^5.3.2",
-    "typescript": "^3.2.2",
-    "webpack": "^4.28.3"
+  
+  "author": {
+    "name": "Jeppe Rune Mortensen",
+    "email": "jepperm@gmail.com",
+    "url": "https://github.com/YePpHa"
   },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/YePpHa/crunchyroll-lib"
+  },
+  "bugs": {
+    "url": "https://github.com/YePpHa/crunchyroll-lib/issues"
+  },
+
+  "main": "bundles/ts-di-transformer.umd.js",
+  "types": "index.d.ts",
+  "module": "index.js",
+  "es2015": "es2015/index.js",
+  
   "scripts": {
-    "build": "npm run build:transformer && npm run build:example",
-    "build:transformer": "tsc --outDir dist",
-    "build:example": "webpack"
+    "build": "npm run build:es5 && npm run build:es6 && npm run build:bundle",
+    "build:es5": "tsc",
+    "build:es6": "tsc -m es6 --outDir dist/es2015",
+    "build:bundle": "webpack",
+    "test:example": "webpack --config ./example.webpack.config.js"
   },
   "devDependencies": {
     "@types/node": "^10.12.18",
+    "awesome-typescript-loader": "^5.2.1",
+    "ts-loader": "^5.3.2",
+    "typescript": "^3.2.2",
+    "uglifyjs-webpack-plugin": "^2.1.1",
+    "webpack": "^4.28.3",
     "webpack-cli": "^3.2.0"
   }
 }

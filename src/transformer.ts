@@ -95,24 +95,12 @@ export default function apiTransformer(program: ts.Program) {
 
     args.push(ts.createArrayLiteral(params));
 
-    /*if (declaration.name.getText() === 'bind') {
-      const firstArgument = node.arguments[0];
-      if (ts.isIdentifier(firstArgument)) {
-        const uid = hash(prefix + (firstArgument as any).id);
-        args[0] = ts.createCall(ts.createIdentifier('Symbol.for'), [], [ts.createStringLiteral(uid)]);
-      }
-    }*/
-
     node.arguments = ts.createNodeArray(args);
 
     return node;
   }
 
-  const apiTs = [
-    path.join(__dirname, 'api.ts'),
-    path.join(__dirname, 'api.d.ts'),
-    path.join(__dirname, '../src/api.ts')
-  ];
+  const apiTs = path.dirname(__dirname);
   function getCallExpressionName(node: ts.Node, typeChecker: ts.TypeChecker): string | undefined {
     if (!ts.isCallExpression(node)) {
       return undefined;
@@ -125,8 +113,8 @@ export default function apiTransformer(program: ts.Program) {
     if (!declaration) {
       return undefined;
     }
-    const filename = path.join(declaration.getSourceFile().fileName);
-    if (apiTs.indexOf(filename) === -1) {
+    const dirname = path.dirname(declaration.getSourceFile().fileName);
+    if (apiTs !== dirname && dirname.indexOf(apiTs) !== 0) {
       return undefined;
     }
     if ((ts.isMethodDeclaration(declaration) || ts.isFunctionDeclaration(declaration)) && !!declaration.name) {

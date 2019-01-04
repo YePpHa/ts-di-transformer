@@ -2,19 +2,20 @@
   "compilerOptions": {
     "module": "commonjs",
     "noEmitOnError": true,
+    "declaration": true,
     "target": "es5",
-    "lib": ["es5", "es6", "es2015.collection", "es2015.iterable", "dom"],
-    "jsx": "react",
-    "jsxFactory": "h",
+    "lib": ["es5", "es6", "es2015.collection"],
     "sourceMap": true,
     "typeRoots": [
       "node_modules/@types"
     ],
+    "outDir": "./dist",
 
     "noImplicitAny": true,
     "noImplicitThis": true,
     "noImplicitReturns": true,
-    "strict": true
+    "strict": true,
+    "moduleResolution": "node"
   },
   "include": [
     "src/**/*"
