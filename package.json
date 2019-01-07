@@ -26,7 +26,7 @@
     "build:es5": "tsc",
     "build:es6": "tsc -m es6 --outDir dist/es2015",
     "build:bundle": "webpack",
-    "test:example": "webpack --config ./example.webpack.config.js"
+    "test:example": "npm run build:es5 && webpack --config ./example.webpack.config.js"
   },
   "devDependencies": {
     "@types/node": "^10.12.18",

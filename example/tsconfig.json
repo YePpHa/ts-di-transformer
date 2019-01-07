@@ -3,7 +3,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "api": ["../src/index"]
+      "api": ["../src/api"]
     },
     "moduleResolution": "classic"
   },

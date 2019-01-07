@@ -36,12 +36,15 @@ export default function apiTransformer(program: ts.Program) {
       throw new Error("No type arguments provided to `InterfaceSymbol<T>()`.");
     }
 
-    const type = typeChecker.getTypeFromTypeNode(node.typeArguments[0]);
+    const typeArgument = node.typeArguments[0];
+    const type = typeChecker.getTypeFromTypeNode(typeArgument);
     if (type.isClass() || !type.isClassOrInterface()) {
       throw new Error("The type provided is not an interface.");
     }
+
+    const sourceFile = typeArgument.getSourceFile();
     
-    const uid = hash(prefix + getId(type));
+    const uid = type.symbol.escapedName + "#" + hash(prefix + sourceFile.fileName + "#" + type.symbol.escapedName);
     return ts.createCall(ts.createIdentifier('Symbol.for'), [], [ts.createStringLiteral(uid)]);
   }
 
@@ -77,8 +80,10 @@ export default function apiTransformer(program: ts.Program) {
         for (const param of firstDeclaration.parameters) {
           if (param.type) {
             const type = typeChecker.getTypeFromTypeNode(param.type);
-            if (type.isClassOrInterface() && !type.isClass()) {
-              const uid = hash(prefix + getId(type));
+            if ((type.isClassOrInterface() && !type.isClass()) as boolean) {
+              const sourceFile = param.type.getSourceFile();
+    
+              const uid = type.symbol.escapedName + "#" + hash(prefix + sourceFile.fileName + "#" + type.symbol.escapedName);
               params.push(ts.createCall(ts.createIdentifier('Symbol.for'), [], [ts.createStringLiteral(uid)]));
             } else {
               params.push(ts.createIdentifier(type.symbol.name));
