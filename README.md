@@ -17,6 +17,9 @@ As this example is not using `reflect-metadata` it's also resolving the
 parameters of the constructor. It will automatically append an extra parameter
 to both `.bind()` and `.startBootstrap()` with an array of the parameters.
 
+See https://github.com/YePpHa/ts-di-transformer-example for a proper example of
+how to use it.
+
 ### Before custom transformer
 ```TypeScript
 interface IBird {
