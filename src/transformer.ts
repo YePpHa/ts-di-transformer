@@ -9,8 +9,8 @@ function hash(str: string): string {
   return h.digest('hex');
 }
 
-function getId(type: ts.Type): string {
-  return (type.symbol as any).id;
+function getId(symbol: ts.Symbol): string {
+  return (symbol as any).id;
 }
 
 export default function apiTransformer(program: ts.Program) {
@@ -38,13 +38,12 @@ export default function apiTransformer(program: ts.Program) {
 
     const typeArgument = node.typeArguments[0];
     const type = typeChecker.getTypeFromTypeNode(typeArgument);
+    const symbol = type.symbol;
     if (type.isClass() || !type.isClassOrInterface()) {
       throw new Error("The type provided is not an interface.");
     }
-
-    const sourceFile = typeArgument.getSourceFile();
     
-    const uid = type.symbol.escapedName + "#" + hash(prefix + sourceFile.fileName + "#" + type.symbol.escapedName);
+    const uid = symbol.escapedName + "#" + hash(prefix + getId(symbol));
     return ts.createCall(ts.createIdentifier('Symbol.for'), [], [ts.createStringLiteral(uid)]);
   }
 
@@ -72,7 +71,7 @@ export default function apiTransformer(program: ts.Program) {
     if (!type.symbol.members) return node;
 
     const params: any[] = [];
-    type.symbol.members.forEach((val, key) => {
+    type.symbol.members.forEach(val => {
       if (val.declarations.length === 0) return;
 
       const firstDeclaration = val.declarations[0];
@@ -80,13 +79,12 @@ export default function apiTransformer(program: ts.Program) {
         for (const param of firstDeclaration.parameters) {
           if (param.type) {
             const type = typeChecker.getTypeFromTypeNode(param.type);
+            const symbol = type.symbol;
             if ((type.isClassOrInterface() && !type.isClass()) as boolean) {
-              const sourceFile = param.type.getSourceFile();
-    
-              const uid = type.symbol.escapedName + "#" + hash(prefix + sourceFile.fileName + "#" + type.symbol.escapedName);
+              const uid = symbol.escapedName + "#" + hash(prefix + getId(symbol));
               params.push(ts.createCall(ts.createIdentifier('Symbol.for'), [], [ts.createStringLiteral(uid)]));
             } else {
-              params.push(ts.createIdentifier(type.symbol.name));
+              params.push(ts.createIdentifier(symbol.name));
             }
           }
         }
