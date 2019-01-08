@@ -62,8 +62,7 @@ class MyTest extends Test {
 
 const container = new Container();
 container.bind(InterfaceSymbol<IBird>(), Crow);
-container.bind(InterfaceSymbol<IOperator>(), MyBrokenOperator);
-container.bind(InterfaceSymbol<IOperator>(), MyBrokenOperator);
+container.bindToConstant(InterfaceSymbol<IOperator>(), new MyBrokenOperator());
 container.bind(Test, MyTest);
 
 container.resolve(App);
