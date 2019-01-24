@@ -58,17 +58,34 @@ export default function apiTransformer(program: ts.Program) {
       return node;
     }
 
-    if (!ts.isMethodDeclaration(declaration) || !declaration.name) {
+    if (
+      (
+        !ts.isMethodDeclaration(declaration)
+        && !ts.isMethodSignature(declaration)
+      )
+      || !declaration.name
+    ) {
       return node;
     }
 
-    const numArgs = declaration.name.getText() === 'bind' ? 2 : 1;
+    const isBind = declaration.name.getText() === 'bind';
+    if (isBind) {
+      const parent = node.parent.parent;
+      if (isCallExpression(parent, typeChecker)) {
+        const methodName = getCallExpressionName(parent, typeChecker);
+        if (methodName === 'to') {
+          node.parent.parent = visitParametersNode(parent, typeChecker);
+          return node;
+        }
+      }
+    }
     
-    if (node.arguments.length !== numArgs) {
+    if (node.arguments.length !== 1) {
       return node;
     }
-    const type = typeChecker.getTypeFromTypeNode(node.arguments[numArgs - 1] as ts.Node as ts.TypeNode);
-    if (!type.symbol.members) return node;
+
+    const type = typeChecker.getTypeFromTypeNode(node.arguments[0] as ts.Node as ts.TypeNode);
+    if (!type.symbol || !type.symbol.members) return node;
 
     const params: any[] = [];
     type.symbol.members.forEach(val => {
@@ -78,13 +95,17 @@ export default function apiTransformer(program: ts.Program) {
       if (ts.isConstructorDeclaration(firstDeclaration)) {
         for (const param of firstDeclaration.parameters) {
           if (param.type) {
-            const type = typeChecker.getTypeFromTypeNode(param.type);
-            const symbol = type.symbol;
-            if ((type.isClassOrInterface() && !type.isClass()) as boolean) {
-              const uid = symbol.escapedName + "#" + hash(prefix + getId(symbol));
-              params.push(ts.createCall(ts.createIdentifier('Symbol.for'), [], [ts.createStringLiteral(uid)]));
+            if (ts.isArrayTypeNode(param.type)) {
+              
             } else {
-              params.push(ts.createIdentifier(symbol.name));
+              const type = typeChecker.getTypeFromTypeNode(param.type);
+              const symbol = type.symbol;
+              if ((type.isClassOrInterface() && !type.isClass()) as boolean) {
+                const uid = symbol.escapedName + "#" + hash(prefix + getId(symbol));
+                params.push(ts.createCall(ts.createIdentifier('Symbol.for'), [], [ts.createStringLiteral(uid)]));
+              } else {
+                params.push(ts.createIdentifier(symbol.name));
+              }
             }
           }
         }
@@ -103,7 +124,7 @@ export default function apiTransformer(program: ts.Program) {
     return node;
   }
 
-  const apiTs = path.dirname(__dirname);
+  const apiTs = path.dirname(__dirname).replace(/\\/g, "/");
   function getCallExpressionName(node: ts.Node, typeChecker: ts.TypeChecker): string | undefined {
     if (!ts.isCallExpression(node)) {
       return undefined;
@@ -116,21 +137,28 @@ export default function apiTransformer(program: ts.Program) {
     if (!declaration) {
       return undefined;
     }
-    const dirname = path.dirname(declaration.getSourceFile().fileName);
+    const dirname = path.dirname(declaration.getSourceFile().fileName).replace(/\\/g, "/");
     if (apiTs !== dirname && dirname.indexOf(apiTs) !== 0) {
       return undefined;
     }
-    if ((ts.isMethodDeclaration(declaration) || ts.isFunctionDeclaration(declaration)) && !!declaration.name) {
+    if (
+      (
+        ts.isMethodDeclaration(declaration)
+        || ts.isMethodSignature(declaration)
+        || ts.isFunctionDeclaration(declaration)
+      )
+      && !!declaration.name
+    ) {
       return declaration.name.getText();
     }
     return undefined;
   }
 
   function isCallExpression(node: ts.Node, typeChecker: ts.TypeChecker): node is ts.CallExpression {
-    if (node.kind !== ts.SyntaxKind.CallExpression) {
+    if (!ts.isCallExpression(node)) {
       return false;
     }
-    const signature = typeChecker.getResolvedSignature(node as ts.CallExpression);
+    const signature = typeChecker.getResolvedSignature(node);
     if (typeof signature === 'undefined') {
       return false;
     }
@@ -140,6 +168,7 @@ export default function apiTransformer(program: ts.Program) {
     }
     return (
       ts.isMethodDeclaration(declaration)
+      || ts.isMethodSignature(declaration)
       || ts.isFunctionDeclaration(declaration)
     ) && !!declaration.name;
   }

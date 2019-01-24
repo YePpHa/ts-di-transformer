@@ -21,8 +21,10 @@ class MyBrokenOperator implements IOperator {
 }
 
 class Crow implements IBird {
-  constructor(op: IOperator) {
-    console.log(op.add(2, 2));
+  constructor(ops: IOperator[]) {
+    for (const op of ops) {
+      console.log(op.add(2, 2));
+    }
   }
 
   public canFly() {
@@ -61,8 +63,9 @@ class MyTest extends Test {
 }
 
 const container = new Container();
-container.bind(InterfaceSymbol<IBird>(), Crow);
-container.bindToConstant(InterfaceSymbol<IOperator>(), new MyBrokenOperator());
-container.bind(Test, MyTest);
+container.bind(InterfaceSymbol<IBird>()).to(Crow);
+container.bind(InterfaceSymbol<IOperator>()).toConstantValue(new MyBrokenOperator());
+container.bind(Test).to(MyTest);
+container.bind(Crow).to(Crow);
 
 container.resolve(App);
