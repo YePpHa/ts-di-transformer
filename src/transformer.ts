@@ -47,6 +47,38 @@ export default function apiTransformer(program: ts.Program) {
     return ts.createCall(ts.createIdentifier('Symbol.for'), [], [ts.createStringLiteral(uid)]);
   }
 
+  function getImports(root: ts.SourceFile): ts.Token<ts.SyntaxKind.StringLiteral>[] {
+    const fake = root as any;
+    if (fake.imports && Array.isArray(fake.imports)) {
+      return fake.imports;
+    } else {
+      return [];
+    }
+  }
+
+  function getImportForType(typeChecker: ts.TypeChecker, imports: ts.Token<ts.SyntaxKind.StringLiteral>[], type: ts.TypeNode): ts.ImportSpecifier | undefined {
+    for (const node of imports) {
+      if (ts.isImportDeclaration(node.parent)) {
+        const importClause = node.parent.importClause;
+        if (importClause && importClause.namedBindings && ts.isNamedImports(importClause.namedBindings)) {
+          const elements = importClause.namedBindings.elements;
+          for (const element of elements) {
+            if (ts.isImportSpecifier(element)) {
+              const importType = typeChecker.getTypeFromTypeNode(element.name as any as ts.TypeNode);
+              const paramType = typeChecker.getTypeFromTypeNode(type);
+
+              if ((importType as any).id === (paramType as any).id) {
+                return element;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return undefined;
+  }
+
   function visitParametersNode(node: ts.CallExpression, typeChecker: ts.TypeChecker): ts.CallExpression {
     const signature = typeChecker.getResolvedSignature(node);
     if (!signature) {
@@ -70,7 +102,7 @@ export default function apiTransformer(program: ts.Program) {
     const type = typeChecker.getTypeFromTypeNode(node.arguments[numArgs - 1] as ts.Node as ts.TypeNode);
     if (!type.symbol.members) return node;
 
-    const params: any[] = [];
+    const params: ts.Expression[] = [];
     type.symbol.members.forEach(val => {
       if (val.declarations.length === 0) return;
 
@@ -84,14 +116,20 @@ export default function apiTransformer(program: ts.Program) {
               const uid = symbol.escapedName + "#" + hash(prefix + getId(symbol));
               params.push(ts.createCall(ts.createIdentifier('Symbol.for'), [], [ts.createStringLiteral(uid)]));
             } else {
-              params.push(ts.createIdentifier(symbol.name));
+              const imports = getImports(node.getSourceFile());
+              const importElement = getImportForType(typeChecker, imports, param.type);
+              if (importElement) {
+                params.push(importElement.name);
+              } else {
+                params.push(ts.createLiteral(symbol.name));
+              }
             }
           }
         }
       }
     });
 
-    const args: any[] = [];
+    const args: ts.Expression[] = [];
     for (const val of node.arguments) {
       args.push(val);
     }
@@ -103,7 +141,7 @@ export default function apiTransformer(program: ts.Program) {
     return node;
   }
 
-  const apiTs = path.dirname(__dirname);
+  const apiTs = path.dirname(__dirname).replace(/\\/g, "/");
   function getCallExpressionName(node: ts.Node, typeChecker: ts.TypeChecker): string | undefined {
     if (!ts.isCallExpression(node)) {
       return undefined;
@@ -116,7 +154,7 @@ export default function apiTransformer(program: ts.Program) {
     if (!declaration) {
       return undefined;
     }
-    const dirname = path.dirname(declaration.getSourceFile().fileName);
+    const dirname = path.dirname(declaration.getSourceFile().fileName).replace(/\\/g, "/");
     if (apiTs !== dirname && dirname.indexOf(apiTs) !== 0) {
       return undefined;
     }
