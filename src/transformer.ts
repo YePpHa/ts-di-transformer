@@ -110,7 +110,15 @@ export default function apiTransformer(program: ts.Program) {
       if (ts.isConstructorDeclaration(firstDeclaration)) {
         for (const param of firstDeclaration.parameters) {
           if (param.type) {
-            const type = typeChecker.getTypeFromTypeNode(param.type);
+            let isArray = false;
+            let type = typeChecker.getTypeFromTypeNode(param.type);
+            if (ts.isArrayTypeNode(param.type)) {
+              const t = type as ts.TypeReference;
+              if (t.typeArguments && t.typeArguments.length > 0) {
+                type = t.typeArguments[0];
+                isArray = true;
+              }
+            }
             const symbol = type.symbol;
             if ((type.isClassOrInterface() && !type.isClass()) as boolean) {
               const uid = symbol.escapedName + "#" + hash(prefix + getId(symbol));
@@ -122,6 +130,13 @@ export default function apiTransformer(program: ts.Program) {
                 params.push(importElement.name);
               } else {
                 params.push(ts.createLiteral(symbol.name));
+              }
+            }
+
+            if (isArray) {
+              const v = params.pop();
+              if (v) {
+                params.push(ts.createArrayLiteral([v]));
               }
             }
           }
