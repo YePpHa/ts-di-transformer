@@ -26,12 +26,14 @@
     "test:example": "npm run build:es5 && webpack --config ./example.webpack.config.js"
   },
   "devDependencies": {
-    "@types/node": "^10.12.18",
+    "@types/node": "^10.12.21",
     "awesome-typescript-loader": "^5.2.1",
-    "ts-loader": "^5.3.2",
-    "typescript": "^3.2.2",
+    "typescript": "^3.3.1",
     "uglifyjs-webpack-plugin": "^2.1.1",
-    "webpack": "^4.28.3",
-    "webpack-cli": "^3.2.0"
+    "webpack": "^4.29.2",
+    "webpack-cli": "^3.2.3"
+  },
+  "peerDependencies": {
+    "typescript": "3.2.2 - 3.3.1"
   }
 }
