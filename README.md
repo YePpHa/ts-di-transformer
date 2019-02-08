@@ -1,4 +1,6 @@
 # Dependency Injection with Interfaces for TypeScript
+[![](https://img.shields.io/npm/v/ts-di-transformer.svg?style=flat)](https://npmjs.com/package/ts-di-transformer)
+
 This is a proof-of-concept of using interfaces with dependency injection. The
 only requirement for this to work is using a custom transformer.
 
