@@ -57,7 +57,7 @@ export class Container {
   }
 
   public bind<T>(serviceIdentifier: ServiceIdentifier<T>, constructor: Newable<T>, params: any[] = []): void {
-    let entries = this._map.get(serviceIdentifier) || [];
+    const entries = this._map.get(serviceIdentifier) || [];
     entries.push({
       kind: 'newable',
       newable: constructor,
@@ -68,13 +68,34 @@ export class Container {
   }
 
   public bindToConstant<T>(serviceIdentifier: ServiceIdentifier<T>, constant: any): void {
-    let entries = this._map.get(serviceIdentifier) || [];
+    const entries = this._map.get(serviceIdentifier) || [];
     entries.push({
       kind: 'constant',
       value: constant
     });
 
     this._map.set(serviceIdentifier, entries);
+  }
+
+  /**
+   * Bind the implementations of the class to the class.
+   * @param constructor 
+   * @param params 
+   * @param serviceIdentifiers 
+   */
+  public bindToImplements<T>(constructor: Newable<T>, params: any[] = [], serviceIdentifiers: ServiceIdentifier<T>[] = []) {
+    const entry = {
+      kind: 'newable',
+      newable: constructor,
+      params
+    } as IContainerNewable;
+
+    for (const serviceIdentifier of serviceIdentifiers) {
+      const entries = this._map.get(serviceIdentifier) || [];
+      entries.push(entry);
+
+      this._map.set(serviceIdentifier, entries);
+    }
   }
 
   public resolve<T>(service: Newable<T>, params: any[] = []): T {
