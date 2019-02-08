@@ -26,6 +26,8 @@ export default function apiTransformer(program: ts.Program) {
         return visitSymbolNode(node, typeChecker);
       } else if (methodName === 'bind' || methodName === 'resolve') {
         return visitParametersNode(node, typeChecker);
+      } else if (methodName === 'bindToImplements') {
+        return bindToImplements(node, typeChecker);
       }
     }
     return node;
@@ -79,6 +81,75 @@ export default function apiTransformer(program: ts.Program) {
     return undefined;
   }
 
+  function getTypeExpression(node: ts.TypeNode, sourceFile: ts.SourceFile, typeChecker: ts.TypeChecker): ts.Expression {
+    let expression: ts.Expression;
+    let isArray = false;
+    let type = typeChecker.getTypeFromTypeNode(node);
+    if (ts.isArrayTypeNode(node)) {
+      const t = type as ts.TypeReference;
+      if (t.typeArguments && t.typeArguments.length > 0) {
+        type = t.typeArguments[0];
+        isArray = true;
+      }
+    }
+    const symbol = type.symbol;
+    if ((type.isClassOrInterface() && !type.isClass()) as boolean) {
+      const uid = symbol.escapedName + "#" + hash(prefix + getId(symbol));
+      expression = ts.createCall(ts.createIdentifier('Symbol.for'), [], [ts.createStringLiteral(uid)]);
+    } else {
+      const imports = getImports(sourceFile);
+      const importElement = getImportForType(typeChecker, imports, node);
+      if (importElement) {
+        expression = importElement.name;
+      } else {
+        expression = ts.createLiteral(symbol.name);
+      }
+    }
+
+    if (isArray && expression) {
+      expression = ts.createArrayLiteral([expression]);
+    }
+
+    return expression;
+  }
+
+  function getClassConstructorParameters(node: ts.TypeNode, sourceFile: ts.SourceFile, typeChecker: ts.TypeChecker): ts.Expression[] {
+    const type = typeChecker.getTypeFromTypeNode(node);
+    if (!type.symbol.members) return [];
+
+    const params: ts.Expression[] = [];
+    type.symbol.members.forEach(val => {
+      if (val.declarations.length === 0) return;
+
+      const firstDeclaration = val.declarations[0];
+      if (ts.isConstructorDeclaration(firstDeclaration)) {
+        for (const param of firstDeclaration.parameters) {
+          if (param.type) {
+            params.push(getTypeExpression(param.type, sourceFile, typeChecker));
+          }
+        }
+      }
+    });
+
+    return params;
+  }
+
+  function getClassImplementedInterfaces(node: ts.TypeNode, sourceFile: ts.SourceFile, typeChecker: ts.TypeChecker): ts.Expression[] {
+    const type = typeChecker.getTypeFromTypeNode(node);
+    const classDeclaration = type.symbol.valueDeclaration as ts.ClassDeclaration;
+    if (!ts.isClassDeclaration(type.symbol.valueDeclaration)) return [];
+    if (!classDeclaration.heritageClauses) return [];
+
+    const identifiers: ts.Expression[] = [];
+    for (const clause of classDeclaration.heritageClauses) {
+      for (const type of clause.types) {
+        identifiers.push(getTypeExpression(type, sourceFile, typeChecker));
+      }
+    }
+
+    return identifiers;
+  }
+
   function visitParametersNode(node: ts.CallExpression, typeChecker: ts.TypeChecker): ts.CallExpression {
     const signature = typeChecker.getResolvedSignature(node);
     if (!signature) {
@@ -99,57 +170,53 @@ export default function apiTransformer(program: ts.Program) {
     if (node.arguments.length !== numArgs) {
       return node;
     }
-    const type = typeChecker.getTypeFromTypeNode(node.arguments[numArgs - 1] as ts.Node as ts.TypeNode);
-    if (!type.symbol.members) return node;
-
-    const params: ts.Expression[] = [];
-    type.symbol.members.forEach(val => {
-      if (val.declarations.length === 0) return;
-
-      const firstDeclaration = val.declarations[0];
-      if (ts.isConstructorDeclaration(firstDeclaration)) {
-        for (const param of firstDeclaration.parameters) {
-          if (param.type) {
-            let isArray = false;
-            let type = typeChecker.getTypeFromTypeNode(param.type);
-            if (ts.isArrayTypeNode(param.type)) {
-              const t = type as ts.TypeReference;
-              if (t.typeArguments && t.typeArguments.length > 0) {
-                type = t.typeArguments[0];
-                isArray = true;
-              }
-            }
-            const symbol = type.symbol;
-            if ((type.isClassOrInterface() && !type.isClass()) as boolean) {
-              const uid = symbol.escapedName + "#" + hash(prefix + getId(symbol));
-              params.push(ts.createCall(ts.createIdentifier('Symbol.for'), [], [ts.createStringLiteral(uid)]));
-            } else {
-              const imports = getImports(node.getSourceFile());
-              const importElement = getImportForType(typeChecker, imports, param.type);
-              if (importElement) {
-                params.push(importElement.name);
-              } else {
-                params.push(ts.createLiteral(symbol.name));
-              }
-            }
-
-            if (isArray) {
-              const v = params.pop();
-              if (v) {
-                params.push(ts.createArrayLiteral([v]));
-              }
-            }
-          }
-        }
-      }
-    });
 
     const args: ts.Expression[] = [];
     for (const val of node.arguments) {
       args.push(val);
     }
 
+    const newable = node.arguments[numArgs - 1] as ts.Node as ts.TypeNode;
+    const params = getClassConstructorParameters(newable, node.getSourceFile(), typeChecker);
     args.push(ts.createArrayLiteral(params));
+
+    node.arguments = ts.createNodeArray(args);
+
+    return node;
+  }
+
+  function bindToImplements(node: ts.CallExpression, typeChecker: ts.TypeChecker): ts.CallExpression {
+    const signature = typeChecker.getResolvedSignature(node);
+    if (!signature) {
+      return node;
+    }
+
+    const { declaration } = signature;
+    if (!declaration) {
+      return node;
+    }
+
+    if (!ts.isMethodDeclaration(declaration) || !declaration.name) {
+      return node;
+    }
+    
+    if (node.arguments.length !== 1) {
+      return node;
+    }
+
+    const args: ts.Expression[] = [];
+    for (const val of node.arguments) {
+      args.push(val);
+    }
+    const sourceFile = node.getSourceFile();
+
+    const newable = node.arguments[0] as ts.Node as ts.TypeNode;
+
+    const params = getClassConstructorParameters(newable, sourceFile, typeChecker);
+    args.push(ts.createArrayLiteral(params));
+
+    const implementedInterfaces = getClassImplementedInterfaces(newable, sourceFile, typeChecker);
+    args.push(ts.createArrayLiteral(implementedInterfaces));
 
     node.arguments = ts.createNodeArray(args);
 
