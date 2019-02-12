@@ -24,7 +24,7 @@ export default function apiTransformer(program: ts.Program) {
       const methodName = getCallExpressionName(node, typeChecker);
       if (methodName === 'InterfaceSymbol') {
         return visitSymbolNode(node, typeChecker);
-      } else if (methodName === 'bind' || methodName === 'resolve') {
+      } else if (methodName === 'bind' || methodName === 'resolve' || methodName === 'resolveFactory') {
         return visitParametersNode(node, typeChecker);
       } else if (methodName === 'bindToImplements') {
         return bindToImplements(node, typeChecker);

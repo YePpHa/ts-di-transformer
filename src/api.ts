@@ -12,20 +12,26 @@ export declare function InterfaceSymbol<T extends Object>(): symbol;
 
 interface IContainerNewable {
   kind: 'newable';
-  newable: Newable<any>;
+  newable: Newable<unknown>;
   params: any[];
-  value?: any;
+  value?: unknown;
 }
 
 interface IContainerConstant {
   kind: 'constant';
-  value: any;
+  value: unknown;
+}
+
+interface IContainerFactory<T> {
+  kind: 'factory';
+  factory: (container: Container) => T;
+  value?: T;
 }
 
 export class Container {
-  private _map: Map<ServiceIdentifier<any>, (IContainerNewable|IContainerConstant)[]> = new Map();
+  private _map: Map<ServiceIdentifier<unknown>, (IContainerNewable|IContainerConstant|IContainerFactory<unknown>)[]> = new Map();
 
-  public get<T>(key: ServiceIdentifier<T>|ServiceIdentifier<T>[]): any {
+  public get<T>(key: ServiceIdentifier<T>|ServiceIdentifier<T>[]): unknown {
     const isMultiInject = Array.isArray(key);
     if (Array.isArray(key)) {
       if (key.length > 0) {
@@ -44,6 +50,9 @@ export class Container {
     for (const entry of entries) {
       if (entry.kind === 'newable' && !entry.value) {
         entry.value = this.resolve(entry.newable, entry.params);
+      }
+      if (entry.kind === 'factory' && !entry.value) {
+        entry.value = entry.factory(this);
       }
 
       if (isMultiInject) {
@@ -67,7 +76,7 @@ export class Container {
     this._map.set(serviceIdentifier, entries);
   }
 
-  public bindToConstant<T>(serviceIdentifier: ServiceIdentifier<T>, constant: any): void {
+  public bindToConstant<T>(serviceIdentifier: ServiceIdentifier<T>, constant: T): void {
     const entries = this._map.get(serviceIdentifier) || [];
     entries.push({
       kind: 'constant',
@@ -98,12 +107,31 @@ export class Container {
     }
   }
 
+  public bindToFactory<T>(serviceIdentifier: ServiceIdentifier<T>, factory: (container: Container) => T) {
+    const entries = this._map.get(serviceIdentifier) || [];
+    entries.push({
+      kind: 'factory',
+      factory
+    });
+
+    this._map.set(serviceIdentifier, entries);
+  }
+
   public resolve<T>(service: Newable<T>, params: any[] = []): T {
-    const args: any = [];
+    const args: unknown[] = [];
     for (const val of params) {
       args.push(this.get(val));
     }
 
     return new service(...args);
+  }
+
+  public resolveFactory<T>(service: Newable<T>, params: any[] = []): Newable<T> {
+    const args: unknown[] = [];
+    for (const val of params) {
+      args.push(this.get(val));
+    }
+
+    return service.bind(undefined, ...args);
   }
 }
