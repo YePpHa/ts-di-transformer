@@ -42,6 +42,10 @@ export class Container {
     }
 
     const entries = this._map.get(key);
+    if (isMultiInject && (!entries || entries.length === 0)) {
+      return [];
+    }
+    
     if (!entries || entries.length === 0) {
       throw new Error("Missing binding of `" + key.toString() + "`.");
     }

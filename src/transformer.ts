@@ -2,6 +2,8 @@ import * as ts from 'typescript';
 import * as path from 'path';
 import * as crypto from 'crypto';
 
+const prefix = crypto.randomBytes(256).toString('hex');
+
 function hash(str: string): string {
   const h = crypto.createHash('sha256');
   h.update(str);
@@ -9,11 +11,12 @@ function hash(str: string): string {
   return h.digest('hex');
 }
 
-function getId(symbol: ts.Symbol): string {
-  return (symbol as any).id;
-}
-
 export default function apiTransformer(program: ts.Program) {
+  function getSymbolId(symbol: ts.Symbol): ts.CallExpression {
+    const uid = symbol.name + "#" + hash(prefix + (symbol as any).id);
+    return ts.createCall(ts.createIdentifier('Symbol.for'), [], [ts.createStringLiteral(uid)]);
+  }
+
   function visitNodeAndChildren(node: ts.Node, program: ts.Program, context: ts.TransformationContext): ts.Node {
     return ts.visitEachChild(visitNode(node, program), childNode => visitNodeAndChildren(childNode, program, context), context);
   }
@@ -44,9 +47,8 @@ export default function apiTransformer(program: ts.Program) {
     if (type.isClass() || !type.isClassOrInterface()) {
       throw new Error("The type provided is not an interface.");
     }
-    
-    const uid = symbol.escapedName + "#" + hash(prefix + getId(symbol));
-    return ts.createCall(ts.createIdentifier('Symbol.for'), [], [ts.createStringLiteral(uid)]);
+
+    return getSymbolId(symbol);
   }
 
   function getImports(root: ts.SourceFile): ts.Token<ts.SyntaxKind.StringLiteral>[] {
@@ -94,8 +96,7 @@ export default function apiTransformer(program: ts.Program) {
     }
     const symbol = type.symbol;
     if ((type.isClassOrInterface() && !type.isClass()) as boolean) {
-      const uid = symbol.escapedName + "#" + hash(prefix + getId(symbol));
-      expression = ts.createCall(ts.createIdentifier('Symbol.for'), [], [ts.createStringLiteral(uid)]);
+      expression = getSymbolId(symbol);
     } else {
       const imports = getImports(sourceFile);
       const importElement = getImportForType(typeChecker, imports, node);
@@ -263,8 +264,6 @@ export default function apiTransformer(program: ts.Program) {
       || ts.isFunctionDeclaration(declaration)
     ) && !!declaration.name;
   }
-
-  const prefix = crypto.randomBytes(256).toString('hex');
 
   return (context: ts.TransformationContext) => (file: ts.Node) => visitNodeAndChildren(file, program, context);
 }

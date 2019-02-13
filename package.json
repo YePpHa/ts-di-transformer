@@ -1,6 +1,6 @@
 {
   "name": "ts-di-transformer",
-  "version": "0.5.1",
+  "version": "0.5.3",
   "license": "MIT",
   "author": {
     "name": "Jeppe Rune Mortensen",
@@ -29,7 +29,7 @@
     "@types/node": "^10.12.18",
     "awesome-typescript-loader": "^5.2.1",
     "ts-loader": "^5.3.2",
-    "typescript": "^3.2.2",
+    "typescript": "^3.3.3",
     "uglifyjs-webpack-plugin": "^2.1.1",
     "webpack": "^4.28.3",
     "webpack-cli": "^3.2.0"
