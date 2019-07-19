@@ -31,6 +31,12 @@ interface IContainerFactory<T> {
 export class Container {
   private _map: Map<ServiceIdentifier<unknown>, (IContainerNewable|IContainerConstant|IContainerFactory<unknown>)[]> = new Map();
 
+  private _parentContainer?: Container;
+
+  public constructor(parentContainer?: Container) {
+    this._parentContainer = parentContainer;
+  }
+
   public get<T>(key: ServiceIdentifier<T>|ServiceIdentifier<T>[]): unknown {
     const isMultiInject = Array.isArray(key);
     if (Array.isArray(key)) {
@@ -47,6 +53,9 @@ export class Container {
     }
     
     if (!entries || entries.length === 0) {
+      if (this._parentContainer) {
+        return this._parentContainer.get<T>(key);
+      }
       throw new Error("Missing binding of `" + key.toString() + "`.");
     }
 

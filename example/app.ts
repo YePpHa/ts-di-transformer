@@ -16,6 +16,15 @@ container.bindToConstant(InterfaceSymbol<IOperator>(), new MyBrokenOperator());
 container.bindToConstant(InterfaceSymbol<IOperator>(), new MyOperator());
 container.bind(Test, MyTest);
 
+container.bindToFactory(InterfaceSymbol<IBird>(), parent => {
+  const container = new Container(parent);
+  container.bindToConstant(InterfaceSymbol<IOperator>(), new MyBrokenOperator());
+
+  return {
+    create: () => container.resolve(Crow)
+  };
+});
+
 container.bindToImplements(FileWriterReader);
 
 container.resolve(App);
