@@ -99,6 +99,42 @@ export class Container {
             const entryValue = obj.getValue();
             return key in entryValue;
           },
+          setPrototypeOf: function(obj, proto) {
+            const entryValue = obj.getValue();
+            Object.setPrototypeOf(entryValue, proto);
+
+            return true;
+          },
+          preventExtensions: function(obj) {
+            Object.preventExtensions(obj.getValue());
+
+            return true;
+          },
+          ownKeys: function(obj) {
+            return Object.keys(obj.getValue());
+          },
+          isExtensible: function(obj) {
+            return Object.isExtensible(obj.getValue());
+          },
+          getPrototypeOf: function(obj) {
+            return Object.getPrototypeOf(obj.getValue())
+          },
+          getOwnPropertyDescriptor: function(obj, key) {
+            return Object.getOwnPropertyDescriptor(obj.getValue(), key);
+          },
+          defineProperty: function(obj, key, desc) {
+            Object.defineProperty(obj.getValue(), key, desc);
+
+            return true;
+          },
+          construct: function(obj, args) {
+            const value = obj.getValue();
+
+            return new value(...args);
+          },
+          apply: function(obj, self, args) {
+            return obj.getValue().apply(self, args);
+          }
         });
 
         if (isMultiInject) {
