@@ -61,17 +61,60 @@ export class Container {
 
     const resolvedEntries = [];
     for (const entry of entries) {
-      if (entry.kind === 'newable' && !entry.value) {
-        entry.value = this.resolve(entry.newable, entry.params);
-      }
-      if (entry.kind === 'factory' && !entry.value) {
-        entry.value = entry.factory(this);
-      }
+      if (!entry.value && entry.kind === 'newable') {
+        const proxyObj = {
+          self: this,
+          entry: entry,
+          getValue: function(): any {}
+        };
+        proxyObj.getValue = function(obj: any) {
+          if (obj.entry.kind === 'newable' && !obj.entry.value) {
+            obj.entry.value = obj.self.resolve(obj.entry.newable, obj.entry.params);
+          }
 
-      if (isMultiInject) {
-        resolvedEntries.push(entry.value);
+          return (obj.entry.value as any);
+        }.bind(null, proxyObj);
+        const proxy = new Proxy(proxyObj, {
+          get: function (obj, prop) {
+            const entryValue = obj.getValue();
+            return entryValue[prop];
+          },
+          set: function (obj, prop, value) {
+            const entryValue = obj.getValue();
+            entryValue[prop] = value;
+
+            return true;
+          },
+          deleteProperty: function (obj, prop) {
+            const entryValue = obj.getValue();
+            delete entryValue[prop];
+
+            return true;
+          },
+          enumerate: function(obj) {
+            const entryValue = obj.getValue();
+            return Object.keys(entryValue);
+          },
+          has: function(obj, key) {
+            const entryValue = obj.getValue();
+            return key in entryValue;
+          },
+        });
+
+        if (isMultiInject) {
+          resolvedEntries.push(proxy);
+        } else {
+          return proxy;
+        }
       } else {
-        return entry.value;
+        if (entry.kind === 'factory' && !entry.value) {
+          entry.value = entry.factory(this);
+        }
+        if (isMultiInject) {
+          resolvedEntries.push(entry.value);
+        } else {
+          return entry.value;
+        }
       }
     }
     
